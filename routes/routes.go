@@ -17,4 +17,8 @@ func RegisterRoutes() {
 	http.HandleFunc("DELETE /books/{id}", handlers.DeleteBookByIDHandler)
 	http.HandleFunc("POST /books/{id}/borrow", handlers.BorrowBookByIDHandler)
 	http.HandleFunc("POST /books/{id}/return", handlers.ReturnBookByIDHandler)
+
+	http.HandleFunc("POST /users", handlers.CreateUserHandler)
+	http.HandleFunc("GET /users", handlers.GetUsersHandler)
+
 }
