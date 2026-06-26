@@ -20,5 +20,6 @@ func RegisterRoutes() {
 
 	http.HandleFunc("POST /users", handlers.CreateUserHandler)
 	http.HandleFunc("GET /users", handlers.GetUsersHandler)
+	http.HandleFunc("GET /borrow-records", handlers.GetBorrowRecordsHandler)
 
 }
