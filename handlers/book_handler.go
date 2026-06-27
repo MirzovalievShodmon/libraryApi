@@ -221,28 +221,33 @@ func DeleteBookByIDHandler(w http.ResponseWriter, r *http.Request) {
 func BorrowBookByIDHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 
-	id, err := strconv.Atoi(idStr)
+	bookID, err := strconv.Atoi(idStr)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "неправильный id книги",
+			"error": "id книги должен быть числом",
 		})
 		return
 	}
 
-	if id <= 0 {
+	var input struct {
+		UserID int `json:"user_id"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "id книги должен быть положительным числом",
+			"error": "неправильный формат данных. Проверьте JSON и типы полей",
 		})
 		return
 	}
 
-	err = services.BorrowBookByID(id)
+	err = services.BorrowBookByID(bookID, input.UserID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -253,7 +258,7 @@ func BorrowBookByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Книга успешно выдана, id:", id)
+	log.Println("Книга успешно выдана, id:", bookID, "user_id:", input.UserID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -342,5 +347,3 @@ func SearchBooksHandler(w http.ResponseWriter, r *http.Request) {
 	//http://localhost:8080/books/search?title=go
 	//http://localhost:8080/books/search?title=go&author=donovan
 }
-
-

@@ -15,3 +15,4 @@ func GetAllBorrowRecords() ([]models.BorrowRecord, error) {
 
 	return records, nil
 }
+

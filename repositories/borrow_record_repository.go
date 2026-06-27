@@ -23,3 +23,47 @@ func GetAllBorrowRecords() ([]models.BorrowRecord, error) {
 
 	return records, err
 }
+
+func CreateBorrowRecord(bookID, userID int) error {
+	query := `
+	    INSERT INTO borrow_records (book_id, user_id, due_date)
+	    VALUES ($1, $2, NOW() + '14 days')
+	`
+
+	_, err := db.GetDBConnection().Exec(query, bookID, userID)
+	if err != nil {
+		return fmt.Errorf("ошибка создания записи выдачи книги: %w", err)
+	}
+
+	return nil
+}
+
+func CloseBorrowRecord(bookID int) error {
+	query := `
+        UPDATE borrow_records
+	    SET returned_at = NOW()
+		WHERE id = (
+		    SELECT id
+			FROM borrow_records
+			WHERE book_id = $1 AND returned_at IS NULL
+			ORDER BY borrowed_at DESC
+			LIMIT 1
+		)
+`
+
+	res, err := db.GetDBConnection().Exec(query, bookID)
+	if err != nil {
+		return fmt.Errorf("ошибка закрытия записи выдачи книги: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("не удалось получить результат закрытия выдачи книги: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("активная запись выдачи для книги с id %d не найдена", bookID)
+	}
+
+	return nil
+}
