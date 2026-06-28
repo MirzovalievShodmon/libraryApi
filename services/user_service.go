@@ -36,3 +36,16 @@ func GetAllUsers() ([]models.User, error) {
 
 	return users, err
 }
+
+func GetUserByID(id int) (models.User, error) {
+	if id <= 0 {
+		return models.User{}, fmt.Errorf("id пользовавтеля должен быть положительным числом")
+	}
+
+	user, err := repositories.GetUserByID(id)
+	if err != nil {
+		return models.User{}, fmt.Errorf("не удалось получить пользователя: %w", err)
+	}
+
+	return user, nil
+}

@@ -104,6 +104,11 @@ func BorrowBookByID(bookID, userID int) error {
 		return fmt.Errorf("id пользователя должен быть положительным числом")
 	}
 
+	_, err := GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
 	book, err := repositories.GetBookByID(bookID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить книгу: %w", err)

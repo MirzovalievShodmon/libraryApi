@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/MirzovalievShodmon/libraryApi/db"
@@ -29,4 +30,21 @@ func GetAllUsers() ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+func GetUserByID(id int) (models.User, error) {
+	var user models.User
+
+	query := `SELECT id, name, email FROM users WHERE id = $1`
+
+	err := db.GetDBConnection().Get(&user, query, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.User{}, fmt.Errorf("пользователь с id %d не найден", id)
+		}
+
+		return models.User{}, fmt.Errorf("ошибка получения пользователя: %w", err)
+	}
+
+	return user, nil
 }
