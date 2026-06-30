@@ -11,8 +11,13 @@ Library API — это REST API проект на Go для управления
 * получать книгу по ID
 * обновлять книгу
 * удалять книгу
-* выдавать книгу
+* создавать пользователей
+* получать список пользователей
+* выдавать книгу конкретному пользователю
 * возвращать книгу
+* хранить историю выдачи книг
+* получать всю историю выдачи книг
+* получать только активные выдачи книг
 
 ## Технологии
 
@@ -41,13 +46,21 @@ libraryApi/
 ├── db/
 │   └── db.go
 ├── models/
-│   └── book.go
+│   ├── book.go
+│   ├── user.go
+│   └── borrow_record.go
 ├── repositories/
-│   └── book_repository.go
+│   ├── book_repository.go
+│   ├── user_repository.go
+│   └── borrow_record_repository.go
 ├── services/
-│   └── book_service.go
+│   ├── book_service.go
+│   ├── user_service.go
+│   └── borrow_record_service.go
 ├── handlers/
-│   └── book_handler.go
+│   ├── book_handler.go
+│   ├── user_handler.go
+│   └── borrow_record_handler.go
 └── routes/
     └── routes.go
 ```
@@ -93,6 +106,7 @@ main.go → routes → handlers → services → repositories → PostgreSQL
 ```go
 http.HandleFunc("GET /books", handlers.GetBooksHandler)
 http.HandleFunc("POST /books", handlers.CreateBookHandler)
+http.HandleFunc("GET /borrow-records", handlers.GetBorrowRecordsHandler)
 ```
 
 ### Handlers
@@ -110,6 +124,7 @@ Services содержат бизнес-логику проекта.
 * год книги не должен быть отрицательным
 * нельзя выдать книгу, если она уже выдана
 * нельзя вернуть книгу, если она уже находится в библиотеке
+* нельзя выдать книгу несуществующему пользователю
 
 ### Repositories
 
@@ -154,7 +169,7 @@ SERVER_PORT=8080
 library_db
 ```
 
-Таблица книг:
+### Таблица книг
 
 ```sql
 CREATE TABLE books (
@@ -165,6 +180,86 @@ CREATE TABLE books (
     available BOOLEAN DEFAULT TRUE
 );
 ```
+
+Поля таблицы `books`:
+
+* `id` — уникальный ID книги
+* `title` — название книги
+* `author` — автор книги
+* `year` — год выпуска книги
+* `available` — доступна книга или нет
+
+Если:
+
+```text
+available = true
+```
+
+значит книга находится в библиотеке.
+
+Если:
+
+```text
+available = false
+```
+
+значит книга выдана пользователю.
+
+### Таблица пользователей
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL
+);
+```
+
+Поля таблицы `users`:
+
+* `id` — уникальный ID пользователя
+* `name` — имя пользователя
+* `email` — email пользователя
+
+### Таблица истории выдачи книг
+
+```sql
+CREATE TABLE borrow_records (
+    id SERIAL PRIMARY KEY,
+    book_id INT NOT NULL REFERENCES books(id),
+    user_id INT NOT NULL REFERENCES users(id),
+    borrowed_at TIMESTAMP DEFAULT NOW(),
+    due_date TIMESTAMP NOT NULL,
+    returned_at TIMESTAMP
+);
+```
+
+Таблица `borrow_records` хранит историю выдачи книг.
+
+Поля таблицы `borrow_records`:
+
+* `id` — уникальный ID записи выдачи
+* `book_id` — какую книгу взяли
+* `user_id` — какой пользователь взял книгу
+* `borrowed_at` — когда книгу взяли
+* `due_date` — до какой даты нужно вернуть книгу
+* `returned_at` — когда книгу реально вернули
+
+Если:
+
+```text
+returned_at = NULL
+```
+
+значит книга ещё не возвращена.
+
+Если:
+
+```text
+returned_at != NULL
+```
+
+значит книгу уже вернули.
 
 ## Запуск проекта
 
@@ -194,7 +289,30 @@ CREATE TABLE books (
 );
 ```
 
-5. Создать файл `.env` и добавить настройки:
+5. Создать таблицу `users`:
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL
+);
+```
+
+6. Создать таблицу `borrow_records`:
+
+```sql
+CREATE TABLE borrow_records (
+    id SERIAL PRIMARY KEY,
+    book_id INT NOT NULL REFERENCES books(id),
+    user_id INT NOT NULL REFERENCES users(id),
+    borrowed_at TIMESTAMP DEFAULT NOW(),
+    due_date TIMESTAMP NOT NULL,
+    returned_at TIMESTAMP
+);
+```
+
+7. Создать файл `.env` и добавить настройки:
 
 ```env
 DB_HOST=localhost
@@ -205,7 +323,7 @@ DB_NAME=library_db
 SERVER_PORT=8080
 ```
 
-6. Запустить проект:
+8. Запустить проект:
 
 ```bash
 go run main.go
@@ -475,7 +593,74 @@ DELETE /books/1
 
 ---
 
-### Выдать книгу
+### Создать пользователя
+
+```http
+POST /users
+```
+
+Пример JSON:
+
+```json
+{
+  "name": "Ahmad",
+  "email": "ahmad@mail.com"
+}
+```
+
+Пример ответа:
+
+```json
+{
+  "message": "Пользователь успешно создан"
+}
+```
+
+Если имя пустое:
+
+```json
+{
+  "error": "имя пользователя не может быть пустым"
+}
+```
+
+Если email пустой:
+
+```json
+{
+  "error": "email пользователя не может быть пустым"
+}
+```
+
+---
+
+### Получить всех пользователей
+
+```http
+GET /users
+```
+
+Пример ответа:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Ahmad",
+    "email": "ahmad@mail.com"
+  }
+]
+```
+
+Если пользователей нет, вернётся пустой список:
+
+```json
+[]
+```
+
+---
+
+### Выдать книгу пользователю
 
 ```http
 POST /books/{id}/borrow
@@ -487,11 +672,21 @@ POST /books/{id}/borrow
 POST /books/1/borrow
 ```
 
-Если книга доступна, она становится недоступной:
+Пример JSON:
+
+```json
+{
+  "user_id": 1
+}
+```
+
+При выдаче книги происходит два действия:
 
 ```text
-available: true → false
+books.available: true → false
 ```
+
+И создаётся новая запись в таблице `borrow_records`.
 
 Пример ответа:
 
@@ -509,6 +704,14 @@ available: true → false
 }
 ```
 
+Если пользователя нет:
+
+```json
+{
+  "error": "не удалось получить пользователя: пользователь с id 999 не найден"
+}
+```
+
 ---
 
 ### Вернуть книгу
@@ -523,11 +726,13 @@ POST /books/{id}/return
 POST /books/1/return
 ```
 
-Если книга была выдана, она снова становится доступной:
+При возврате книги происходит два действия:
 
 ```text
-available: false → true
+books.available: false → true
 ```
+
+И в таблице `borrow_records` поле `returned_at` заполняется текущим временем.
 
 Пример ответа:
 
@@ -545,6 +750,79 @@ available: false → true
 }
 ```
 
+---
+
+### Получить всю историю выдачи книг
+
+```http
+GET /borrow-records
+```
+
+Этот endpoint возвращает все записи выдачи книг:
+
+* книги, которые уже вернули
+* книги, которые ещё не вернули
+
+Пример ответа:
+
+```json
+[
+  {
+    "id": 1,
+    "book_id": 1,
+    "user_id": 1,
+    "borrowed_at": "2026-06-27T15:58:33.031002Z",
+    "due_date": "2026-07-11T15:58:33.031002Z",
+    "returned_at": null
+  }
+]
+```
+
+Если `returned_at = null`, значит книга ещё не возвращена.
+
+Если история выдачи пустая, вернётся:
+
+```json
+[]
+```
+
+---
+
+### Получить активные выдачи книг
+
+```http
+GET /borrow-records/active
+```
+
+Этот endpoint возвращает только книги, которые сейчас выданы и ещё не возвращены.
+
+То есть записи, где:
+
+```sql
+returned_at IS NULL
+```
+
+Пример ответа:
+
+```json
+[
+  {
+    "id": 1,
+    "book_id": 1,
+    "user_id": 1,
+    "borrowed_at": "2026-06-27T15:58:33.031002Z",
+    "due_date": "2026-07-11T15:58:33.031002Z",
+    "returned_at": null
+  }
+]
+```
+
+Если активных выдач нет, вернётся:
+
+```json
+[]
+```
+
 ## Логирование
 
 В проект добавлены простые логи через пакет `log`.
@@ -557,6 +835,7 @@ available: false → true
 2026/06/24 03:23:53 Книга успешно создана: Test Book
 2026/06/24 03:26:39 Книга успешно выдана, id: 3
 2026/06/24 03:26:47 Книга успешно возвращена, id: 3
+2026/06/24 03:30:12 Пользователь успешно создан: ahmad@mail.com
 ```
 
 ## Примеры тестирования в Postman
@@ -591,10 +870,30 @@ GET http://localhost:8080/books/search?author=martin
 GET http://localhost:8080/books/search?title=code
 ```
 
-Выдать книгу:
+Создать пользователя:
+
+```http
+POST http://localhost:8080/users
+```
+
+Получить пользователей:
+
+```http
+GET http://localhost:8080/users
+```
+
+Выдать книгу пользователю:
 
 ```http
 POST http://localhost:8080/books/1/borrow
+```
+
+Body:
+
+```json
+{
+  "user_id": 1
+}
 ```
 
 Вернуть книгу:
@@ -603,17 +902,28 @@ POST http://localhost:8080/books/1/borrow
 POST http://localhost:8080/books/1/return
 ```
 
+Получить всю историю выдачи:
+
+```http
+GET http://localhost:8080/borrow-records
+```
+
+Получить активные выдачи:
+
+```http
+GET http://localhost:8080/borrow-records/active
+```
+
 ## Возможные улучшения
 
 В будущем можно добавить:
 
-* пользователей
-* историю выдачи книг
-* срок возврата книги
+* проверку email на уникальность
+* красивую обработку duplicate email
 * штраф за просрочку или плохое состояние книги
 * JWT авторизацию
 * роли администратора и пользователя
 * Swagger документацию
 * unit tests
-* транзакции
+* транзакции для borrow/return
 * работу с файлами, например обложки книг
