@@ -67,3 +67,20 @@ func CloseBorrowRecord(bookID int) error {
 
 	return nil
 }
+
+func GetActiveBorrowRecors() ([]models.BorrowRecord, error) {
+	records := []models.BorrowRecord{}
+	query := `
+        SELECT id, book_id, user_id, borrowed_at, due_at, returned_at
+        FROM borrow_records
+        WHERE returned_at IS NULL
+        ORDER BBY borrowed_at DESC
+`
+
+	err := db.GetDBConnection().Select(&records, query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения активных выдач книг: %w", err)
+	}
+
+	return records, nil
+}

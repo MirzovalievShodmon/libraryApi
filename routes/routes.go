@@ -22,5 +22,6 @@ func RegisterRoutes() {
 	http.HandleFunc("GET /users", handlers.GetUsersHandler)
 	
 	http.HandleFunc("GET /borrow-records", handlers.GetBorrowRecordsHandler)
+	http.HandleFunc("GET /borrow-records/active", handlers.GetActiveBorrowRecorsHandler)
 
 }

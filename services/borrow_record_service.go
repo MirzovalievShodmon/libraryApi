@@ -16,3 +16,11 @@ func GetAllBorrowRecords() ([]models.BorrowRecord, error) {
 	return records, nil
 }
 
+func GetActiveBorrowRecors() ([]models.BorrowRecord, error) {
+	records, err := repositories.GetActiveBorrowRecors()
+	if err != nil {
+		return nil, fmt.Errorf("не удалось получить активные выдачи книг: %w", err)
+	}
+
+	return records, nil
+}
