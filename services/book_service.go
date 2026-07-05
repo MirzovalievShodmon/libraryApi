@@ -118,12 +118,7 @@ func BorrowBookByID(bookID, userID int) error {
 		return fmt.Errorf("книга уже выдана")
 	}
 
-	err = repositories.CreateBorrowRecord(bookID, userID)
-	if err != nil {
-		return fmt.Errorf("не удалось создать запись выдачи книги: %w", err)
-	}
-
-	err = repositories.UpdateBookAvailabilityByID(bookID, false)
+	err = repositories.BorrowBookWithTransaction(bookID, userID)
 	if err != nil {
 		return fmt.Errorf("не удалось выдать книгу: %w", err)
 	}
@@ -145,12 +140,7 @@ func ReturnBookByID(bookID int) error {
 		return fmt.Errorf("книга уже находится в библиотеке")
 	}
 
-	err = repositories.CloseBorrowRecord(bookID)
-	if err != nil {
-		return fmt.Errorf("не удалось закрыть запись на выдачи книги: %w", err)
-	}
-
-	err = repositories.UpdateBookAvailabilityByID(bookID, true)
+	err = repositories.ReturnBookWithTransaction(bookID)
 	if err != nil {
 		return fmt.Errorf("не удалось вернуть книгу: %w", err)
 	}
