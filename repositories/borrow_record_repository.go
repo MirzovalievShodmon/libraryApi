@@ -68,7 +68,7 @@ func CloseBorrowRecord(bookID int) error {
 	return nil
 }
 
-func GetActiveBorrowRecors() ([]models.BorrowRecord, error) {
+func GetActiveBorrowRecords() ([]models.BorrowRecord, error) {
 	records := []models.BorrowRecord{}
 	query := `
         SELECT id, book_id, user_id, borrowed_at, due_date, returned_at

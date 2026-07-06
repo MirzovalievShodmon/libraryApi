@@ -23,8 +23,8 @@ func GetBorrowRecordsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(records)
 }
 
-func GetActiveBorrowRecorsHandler(w http.ResponseWriter, r *http.Request) {
-	records, err := services.GetActiveBorrowRecors()
+func GetActiveBorrowRecordsHandler(w http.ResponseWriter, r *http.Request) {
+	records, err := services.GetActiveBorrowRecords()
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

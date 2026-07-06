@@ -8,10 +8,10 @@ import (
 	"github.com/MirzovalievShodmon/libraryApi/models"
 )
 
-func CreateUser(name, author string) error {
+func CreateUser(name, email string) error {
 	query := `INSERT INTO users (name, email) VALUES ($1, $2)`
 
-	_, err := db.GetDBConnection().Exec(query, name, author)
+	_, err := db.GetDBConnection().Exec(query, name, email)
 	if err != nil {
 		return fmt.Errorf("ошибка создания пользователя: %w", err)
 	}
